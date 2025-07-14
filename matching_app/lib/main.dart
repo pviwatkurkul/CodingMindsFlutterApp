@@ -94,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               Expanded(
-                child: Container(color: Color(0xFF20365b), child: page),
+                child: Container(color: Color(0xFFd26a92), child: page),
               ),
             ],
           ),
@@ -148,6 +148,7 @@ class GeneratorPage extends StatelessWidget {
 
     //Overall page scaffold like 'html' in HTML
     return Scaffold(
+      backgroundColor: Color(0xFFd26a92),
       //warpped column widget with center widget to center horizontally
       body: Center(
         // aligned vertically with mainAxisAlignment parameter
