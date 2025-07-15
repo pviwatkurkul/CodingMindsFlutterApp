@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "129112253119",
-    "project_id": "quizit-d51b6",
-    "storage_bucket": "quizit-d51b6.firebasestorage.app"
+    "project_number": "970573630624",
+    "project_id": "quizit-3f99d",
+    "storage_bucket": "quizit-3f99d.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:129112253119:android:88e9eeab0ba70150931c0a",
+        "mobilesdk_app_id": "1:970573630624:android:de33bcf8bdaeafa76dcdc5",
         "android_client_info": {
           "package_name": "com.example.matching_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBx4gJeS5ABR2nVXxKreaMwwWvGtI_DsJc"
+          "current_key": "AIzaSyBRos2REIRjuEHMH58lWlaUNaDK-toCvwM"
         }
       ],
       "services": {
