@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:matching_app/auth_service.dart';
-import './main1.dart';
+import 'package:matching_app/pages/quiz_page.dart';
+import 'package:matching_app/pages/signin_page.dart';
 
 class AuthLayout extends StatelessWidget {
   const AuthLayout({super.key});
