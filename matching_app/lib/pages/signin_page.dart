@@ -53,6 +53,12 @@ class _SiginState extends State<SigninPage> {
                     SizedBox(height: 24),
                     TextFormField(
                       controller: email,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter an email.';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
@@ -74,6 +80,12 @@ class _SiginState extends State<SigninPage> {
                     SizedBox(height: 16),
                     TextFormField(
                       controller: password,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a password.';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(

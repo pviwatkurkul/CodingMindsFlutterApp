@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:matching_app/auth_service.dart';
 import 'package:matching_app/pages/quiz_page.dart';
 import 'package:matching_app/pages/signin_page.dart';
+import 'package:matching_app/pages/game_screen.dart';
 
 class AuthLayout extends StatelessWidget {
   const AuthLayout({super.key});
@@ -16,7 +17,7 @@ class AuthLayout extends StatelessWidget {
           builder: (context, snapshot) {
             Widget widget;
             if (snapshot.hasData) {
-              widget = QuizPage();
+              widget = GameScreen();
             } else {
               widget = SigninPage();
             }
