@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:matching_app/models/game_item.dart';
 import 'package:matching_app/models/game_category.dart';
 import 'package:matching_app/widgets/round_timer.dart';
+import 'package:matching_app/pages/results_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:matching_app/auth_service.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -29,6 +30,9 @@ class _GameState extends State<GameScreen> {
 
   Color? _buttonColor;
 
+  bool _isGameFinished = false;
+  bool _isTimeUp = false;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +53,22 @@ class _GameState extends State<GameScreen> {
     } else {
       throw Exception('No game data found in Firebase.');
     }
+  }
+
+  void _restartGame() {
+    setState(() {
+      _allCategories.clear();
+      _currentRound = 0;
+      _isGameFinished = false;
+      _isTimeUp = false;
+      _gameDataFuture = _fetchGameData();
+    });
+  }
+
+  void _onTimeUp() {
+    setState(() {
+      _isTimeUp = true;
+    });
   }
 
   void startNewRound() {
@@ -89,6 +109,14 @@ class _GameState extends State<GameScreen> {
         correctItemsInRound.length == selectedItems.length &&
         correctItemsInRound.containsAll(selectedItems);
 
+    // Check for win condition
+    if (isAnswerCorrect && _currentRound >= _allCategories.length) {
+      setState(() {
+        _isGameFinished = true;
+        _buttonColor = Colors.green;
+      });
+      return; // Stop further execution
+    }
     setState(() {
       _buttonColor = isAnswerCorrect ? Colors.green : Colors.redAccent;
     });
@@ -138,15 +166,41 @@ class _GameState extends State<GameScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (_allCategories.isNotEmpty)
-                  Text('ROUND $_currentRound/${_allCategories.length}'),
-                TimerWidget(key: _timerKey),
-                Text(_currentCategoryName),
-                Text('Select images that match $_currentCategoryName'),
+                  Text(
+                    'ROUND $_currentRound/${_allCategories.length}',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                TimerWidget(key: _timerKey, onTimerEnd: _onTimeUp),
+                SizedBox(height: 80),
+                Text(
+                  _currentCategoryName,
+                  style: TextStyle(
+                    fontSize: 80,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text.rich(
+                  TextSpan(
+                    text: 'Select image(s) that match ',
+                    style: TextStyle(fontSize: 20),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: '$_currentCategoryName',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 64),
                 Wrap(
                   alignment: WrapAlignment.center,
                   children: _displayItems.map((item) {
-                    print('|${item.imageUrl}|');
-
                     final isSelected = _selectedItems.contains(item);
                     return GestureDetector(
                       onTap: () {
@@ -178,31 +232,96 @@ class _GameState extends State<GameScreen> {
                   }).toList(),
                 ),
                 SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _checkAnswer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _buttonColor,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      vertical: 16.0,
-                      horizontal: 32.0,
+                if (_isTimeUp)
+                  ElevatedButton(
+                    onPressed: _restartGame,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent, // Keep the green color
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 32.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Times Up! Try Again?',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else if (_isGameFinished)
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const ResultsScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green, // Keep the green color
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 32.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Finish Game',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else if (_buttonColor == Colors.green)
+                  ElevatedButton(
+                    onPressed: startNewRound,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green, // Keep the green color
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 32.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Next Round',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: _checkAnswer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _buttonColor,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 32.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Confirm Selection',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Confirm Selection',
+                if (_buttonColor == Colors.redAccent && !_isTimeUp)
+                  Text(
+                    'Try again!',
                     style: TextStyle(
-                      fontSize: 16.0,
+                      color: Colors.redAccent,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                // This button will be used for the next round later
-                ElevatedButton(
-                  onPressed: () {
-                    // Logic for next round will go here
-                  },
-                  child: Text('Next Round'),
-                ),
               ],
             ),
           ),

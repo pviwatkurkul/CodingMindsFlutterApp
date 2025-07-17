@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class TimerWidget extends StatefulWidget {
-  const TimerWidget({super.key});
+  final VoidCallback? onTimerEnd;
+
+  const TimerWidget({
+    super.key,
+    this.onTimerEnd, // Initialize it in the constructor
+  });
 
   @override
   State<TimerWidget> createState() => TimerState();
@@ -46,7 +51,7 @@ class TimerState extends State<TimerWidget>
     final seconds = durationNotifier.value.inSeconds - 1;
     if (seconds < 0) {
       timer?.cancel();
-      // You can add logic here for when the timer ends
+      widget.onTimerEnd?.call();
     } else {
       durationNotifier.value = Duration(seconds: seconds);
     }

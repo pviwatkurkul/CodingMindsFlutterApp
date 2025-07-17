@@ -37,12 +37,24 @@ class _StartState extends State<StartPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('This is QuizIt'),
-            SizedBox(height: 32),
             Text(
-              'Click and match the images to the category given. You are timed and must make it through all the rounds to win. Good luck and have fun!',
+              'Welcome to QuizIt!',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+                fontSize: 36.0,
+              ),
             ),
-            SizedBox(height: 64),
+            SizedBox(height: 32),
+            Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Text(
+                'Click and match the images to the category given. You are timed and must make it through all the rounds to win. Good luck and have fun!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -50,7 +62,15 @@ class _StartState extends State<StartPage> {
                   MaterialPageRoute(builder: (context) => const GameScreen()),
                 );
               },
-              child: Text('Start Round'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
+              ),
+              child: Text(
+                'Start Round',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
