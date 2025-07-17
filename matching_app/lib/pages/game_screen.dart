@@ -1,9 +1,11 @@
+// filepath: c:\dev\CodingMindsFlutterApp\matching_app\lib\pages\game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:matching_app/models/game_item.dart';
 import 'package:matching_app/models/game_category.dart';
 import 'package:matching_app/widgets/round_timer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:matching_app/auth_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -13,59 +15,59 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameState extends State<GameScreen> {
+  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
   final GlobalKey<TimerState> _timerKey = GlobalKey<TimerState>();
 
-  final List<GameCategory> _allCategories = [
-    GameCategory(
-      name: "Fruits",
-      items: [
-        GameItem(
-          name: "Apple",
-          imageUrl: "lib/assets/apple.jpg",
-          isCorrect: true,
-        ),
-        GameItem(
-          name: "Banana",
-          imageUrl: "lib/assets/banana.jpg",
-          isCorrect: true,
-        ),
-        GameItem(
-          name: "Potato",
-          imageUrl: "lib/assets/potato.jpg",
-          isCorrect: false,
-        ),
-      ],
-    ),
-  ];
+  late Future<List<GameCategory>> _gameDataFuture;
 
-  int _currentRound = 1;
+  List<GameCategory> _allCategories = [];
+  int _currentRound = 0;
 
   String _currentCategoryName = "";
   List<GameItem> _displayItems = [];
   List<GameItem> _selectedItems = [];
 
-  Color? _buttonColor = Colors.black;
+  Color? _buttonColor;
 
   @override
   void initState() {
     super.initState();
-    // Start the first round as soon as the widget is ready
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      startNewRound();
-    });
-    startNewRound();
+    _gameDataFuture = _fetchGameData();
+  }
+
+  Future<List<GameCategory>> _fetchGameData() async {
+    final snapshot = await _databaseRef.child('rounds').get();
+    if (snapshot.exists && snapshot.value != null) {
+      final roundsData = Map<String, dynamic>.from(snapshot.value as Map);
+      final categories = roundsData.values
+          .map(
+            (roundData) =>
+                GameCategory.fromMap(Map<String, dynamic>.from(roundData)),
+          )
+          .toList();
+      return categories;
+    } else {
+      throw Exception('No game data found in Firebase.');
+    }
   }
 
   void startNewRound() {
-    _timerKey.currentState?.start();
+    if (_currentRound >= _allCategories.length) {
+      print("Game Over!");
+      return;
+    }
 
-    final currentCategory = _allCategories[_currentRound - 1];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _timerKey.currentState?.start();
+    });
+
     setState(() {
+      _currentRound++;
+      final currentCategory = _allCategories[_currentRound - 1];
       _currentCategoryName = currentCategory.name;
-      _buttonColor = Colors.black; // Reset button color to default
-
-      _displayItems = currentCategory.items;
-      _displayItems.shuffle();
+      _buttonColor = Colors.black;
+      _selectedItems.clear();
+      _displayItems = List.from(currentCategory.items)..shuffle();
     });
   }
 
@@ -78,16 +80,11 @@ class _GameState extends State<GameScreen> {
   }
 
   void _checkAnswer() {
-    // Find all the correct items that are currently displayed.
     final correctItemsInRound = _displayItems
         .where((item) => item.isCorrect)
         .toSet();
-
-    // Get the items the user actually selected.
     final selectedItems = _selectedItems.toSet();
 
-    // The answer is correct if the set of selected items is identical
-    // to the set of correct items for the round.
     bool isAnswerCorrect =
         correctItemsInRound.length == selectedItems.length &&
         correctItemsInRound.containsAll(selectedItems);
@@ -99,71 +96,118 @@ class _GameState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () {
-              logout();
-            },
+    return FutureBuilder<List<GameCategory>>(
+      future: _gameDataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: Text('Loading Game...')),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text('Error')),
+            body: Center(
+              child: Text('Could not load game data: ${snapshot.error}'),
+            ),
+          );
+        }
+
+        if (snapshot.hasData && _allCategories.isEmpty) {
+          _allCategories = snapshot.data!;
+          // Use a post-frame callback to ensure the first build is complete
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            startNewRound();
+          });
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            actions: [
+              IconButton(
+                icon: Icon(Icons.logout),
+                tooltip: 'Logout',
+                onPressed: logout,
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('ROUND 1/5'),
-            TimerWidget(key: _timerKey),
-            Text(_currentCategoryName),
-            Text('Select images that match $_currentCategoryName'),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: _displayItems.map((item) {
-                final isSelected = _selectedItems.contains(item);
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedItems.remove(item);
-                      } else {
-                        _selectedItems.add(item);
-                      }
-                    });
-                  },
-                  child: Container(
-                    margin: EdgeInsets.all(16.0),
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.grey,
-                        width: 3,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_allCategories.isNotEmpty)
+                  Text('ROUND $_currentRound/${_allCategories.length}'),
+                TimerWidget(key: _timerKey),
+                Text(_currentCategoryName),
+                Text('Select images that match $_currentCategoryName'),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  children: _displayItems.map((item) {
+                    print('|${item.imageUrl}|');
+
+                    final isSelected = _selectedItems.contains(item);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedItems.remove(item);
+                          } else {
+                            _selectedItems.add(item);
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: EdgeInsets.all(8.0),
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.blue : Colors.grey,
+                            width: 4,
+                          ),
+                          image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: AssetImage(item.imageUrl),
+                          ),
+                        ),
                       ),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: AssetImage(item.imageUrl),
-                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _checkAnswer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _buttonColor,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 16.0,
+                      horizontal: 32.0,
                     ),
                   ),
-                );
-              }).toList(),
+                  child: Text(
+                    'Confirm Selection',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                // This button will be used for the next round later
+                ElevatedButton(
+                  onPressed: () {
+                    // Logic for next round will go here
+                  },
+                  child: Text('Next Round'),
+                ),
+              ],
             ),
-            SizedBox(height: 175),
-            ElevatedButton(
-              onPressed: _checkAnswer,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _buttonColor,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Confirm selection', style: TextStyle(fontSize: 20)),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
